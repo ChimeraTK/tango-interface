@@ -83,6 +83,7 @@ ExternalProject_add(cpptango_external
         -DCMAKE_INSTALL_LIBDIR=lib
         -DOMNI_BASE=${CMAKE_INSTALL_PREFIX}
         -DBUILD_TESTING=Off
+        -DTANGO_USE_TELEMETRY=Off
 )
 
 # Fake install target
