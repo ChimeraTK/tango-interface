@@ -50,6 +50,39 @@ else ()
     set(TANGO_VERSION "9.5.0")
 endif()
 
+find_program(PATCHELF patchelf)
+
+if(PATCHELF)
+  execute_process(COMMAND ${PATCHELF} "--version" OUTPUT_VARIABLE PATCHELF_OUTPUT)
+  string(REPLACE " " ";" PATCHELF_VERSION ${PATCHELF_OUTPUT})
+  list(POP_FRONT PATCHELF_VERSION)
+
+  if(PATCHELF_VERSION VERSION_LESS "0.18.0")
+    set(PATCHELF "PATCHELF-NOTFOUND")
+  else()
+    message("${PATCHELF} is >= 0.18, using system version")
+  endif()
+endif()
+
+if(NOT PATCHELF)
+  include(ExternalProject)
+  ExternalProject_Add(patchelf-external
+    SOURCE_DIR ${PROJECT_BINARY_DIR}/patchelf
+    URL https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0.tar.gz
+    BUILD_BYPRODUCTS patchelf-external-prefix/bin/patchelf
+    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/drop-unsupported-elf-tag.patch
+    CONFIGURE_COMMAND ${PROJECT_BINARY_DIR}/patchelf/configure --prefix=<INSTALL_DIR> CFLAGS=-w CPPFLAGS=-w CXXFLAGS=-w
+    BUILD_COMMAND ${MAKE}
+  )
+  ExternalProject_Get_property(patchelf-external install_dir)
+  set(PATCHELF ${install_dir}/bin/patchelf)
+  add_custom_target(patchelf-build DEPENDS patchelf-external)
+else()
+  add_custom_target(patchelf-build COMMAND echo "Nothing to do for patchelf.")
+endif()
+
+message("Patchelf is ${PATCHELF}")
+
 message("Selected versions for ${CODENAME}")
 message("IDL: ${IDL_VERSION}, ORB: ${ORB_VERSION} (with sha256 ${ORB_HASH}), tango: ${TANGO_VERSION}")
 
@@ -86,5 +119,10 @@ ExternalProject_add(cpptango_external
         -DTANGO_USE_TELEMETRY=Off
 )
 
+configure_file(patch_rpath.in patch_rpath @ONLY)
+
+install(CODE [===[
+    execute_process(COMMAND ${CMAKE_BINARY_DIR}/patch_rpath --set-rpath ${CMAKE_INSTALL_PREFIX}/lib ${DESTDIR}/${CMAKE_INSTALL_PREFIX}/lib/libtango.so)
+]===])
 # Fake install target
 install(FILES README.md DESTINATION ${CMAKE_INSTALL_PREFIX}/share/doc/tango-interface)
