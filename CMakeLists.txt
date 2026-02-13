@@ -42,7 +42,7 @@ else ()
   set(IDL_VERSION "6.0.2")
   set(ORB_VERSION "4.3.2")
   set(ORB_HASH "1c745330d01904afd7a1ed0a5896b9a6e53ac1a4b864a48503b93c7eecbf1fa8")
-  set(TANGO_VERSION "10.1.0")
+  set(TANGO_VERSION "10.3.0")
 endif()
 
 find_program(PATCHELF patchelf)
